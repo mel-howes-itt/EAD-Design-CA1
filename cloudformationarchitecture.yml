@@ -1,0 +1,98 @@
+# Step 1 Create the electric load balancer
+# Step 2 ELB listener (target group)
+# Step 3 Target Group
+# Step 4 ASG
+# Doesn't work yet.... Error on Load Balancer.
+# Based on: https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/example-templates-autoscaling.html
+---
+AWSTemplateFormatVersion: '2010-09-09'
+Description: 'Mels attempt at creating a YAML for CloudFormation for EAD Design CA1.'
+Parameters:
+  MyVpcId:
+    Type : AWS::EC2::VPC::Id
+    Description : VpcId of my existing Virtual Private Cloud (VPC)
+    ConstraintDescription : >-
+      must be the VPC Id of an existing Virtual Private Cloud
+  MyInstanceType:
+    Type: String
+    Default: t2.micro
+    AllowedValues:
+      - t1.micro
+      - t2.micro
+  MyKeyName:
+    Type: AWS::EC2::KeyPair::KeyName
+    Default: TU_Dublin
+  MyImageId:
+    Type: String
+    Default: ami-03d6469eda9235f8e
+    AllowedValues:
+      - ami-03d6469eda9235f8e
+
+Resources:
+  MyEADDemoSG:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupName: EAD-Design-SG
+      GroupDescription: Allow ssh to client host
+      SecurityGroupIngress:
+      - IpProtocol: tcp
+        FromPort: 22
+        ToPort: 22
+        CidrIp: "0.0.0.0/0"
+      - IpProtocol: tcp
+        FromPort: 80
+        ToPort: 80
+        CidrIp: "0.0.0.0/0"
+        
+  MyLoadBalancer:
+    Type: AWS::ElasticLoadBalancingV2::LoadBalancer
+    Properties:
+      Subnets: ["subnet-9b6f95d3", "subnet-857043de", "subnet-aa08ffcc"]
+
+  MyLoadBalancerListener:
+    Type: AWS::ElasticLoadBalancingV2::Listener
+    Properties:
+      DefaultActions:
+        Type: forward
+        TargetGroupArn: 
+          Ref: MyTargetGroup
+      LoadBalancerArn: 
+        Ref: MyLoadBalancer
+      Port: 80
+      Protocol: HTTP
+
+  MyTargetGroup:
+    Type: AWS::ElasticLoadBalancingV2::TargetGroup
+    Properties: 
+      Name: MyTargetGroup
+      Port: 80
+      Protocol: HTTP
+      VpcId: "vpc-48ef3c2e"
+    DependsOn: MyLoadBalancer
+    
+  MyLaunchConfig:
+    Type: AWS::AutoScaling::LaunchConfiguration
+    Properties:
+      ImageId: !Ref MyImageId
+      SecurityGroups:
+      - Ref: "MyEADDemoSG"
+      InstanceType: !Ref MyInstanceType
+     
+  MyServerGroup:
+    Type: AWS::AutoScaling::AutoScalingGroup
+    Properties:
+      AvailabilityZones:
+        Fn::GetAZs: 'eu-west-1'
+      LaunchConfigurationName:
+        Ref: MyLaunchConfig
+      MinSize: '3'
+      MaxSize: '3'
+      LoadBalancerNames:
+      - Ref: MyLoadBalancer
+      NotificationConfigurations:
+      - TopicARN: arn:aws:sns:eu-west-1:978614868007:EAD-Design-Mels-Topic
+        NotificationTypes:
+        - autoscaling:EC2_INSTANCE_LAUNCH
+        - autoscaling:EC2_INSTANCE_LAUNCH_ERROR
+        - autoscaling:EC2_INSTANCE_TERMINATE
+        - autoscaling:EC2_INSTANCE_TERMINATE_ERROR
