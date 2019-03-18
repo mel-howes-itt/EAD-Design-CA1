@@ -89,7 +89,7 @@ for myinstancetoterminate in mydisruptedids:
     instance = ec2.Instance(myinstancetoterminate)
     instance.terminate()
 	
-print('\033[1;33;40mChecking recovery...')
+print('\033[1;33;40mChecking recovery, please wait...')
 
 # Wait 10 seconds to allow the terminate command to take effect before checking
 time.sleep(10)
