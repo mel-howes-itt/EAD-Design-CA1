@@ -7,10 +7,11 @@ myinstances = 0
 rinstances = 0
 r2instances = 0
 myinstanceids = []
+myrinstanceids = []
 mydisruptedids = []
 x = 0
 
-print("\n" * 5)
+print('\n' * 5)
 print ('Welcome to Mels TUD Chaos Monkey (tud_cm)')
 print ('----------------------------------------')
 print()
@@ -29,7 +30,7 @@ for instance in ec2list.all():
 
 # Check there are instances found
 if myinstances <1:
-    print("No instances found. Chaos Monkey will now exit.")
+    print('No instances found. Chaos Monkey will now exit.')
     exit()
 
 # Get a variable that is the number of running instances, as opposed to terminated, pending etc
@@ -37,10 +38,11 @@ runninginstances = ec2list.filter(Filters=[{'Name': 'instance-state-name', 'Valu
 
 for rinstance in runninginstances.all():
     rinstances +=1
+    myrinstanceids.append(rinstance.id)
 
 # Check there are running instances found
 if rinstances <1:
-    print("No running instances found. Chaos Monkey will now exit.")
+    print('No running instances found. Chaos Monkey will now exit.')
     exit()
 
 print('\033[1;32;40mTotal number of instances: ', myinstances)
@@ -71,7 +73,7 @@ while True:
 		
 # Choose random instance ids, from the list of running instances, to disrupt		
 while x < (int(disrupt)):
-    myrandom = random.choice(myinstanceids)
+    myrandom = random.choice(myrinstanceids)
     mydisruptedids.append(myrandom)
     x+=1
 
@@ -94,14 +96,22 @@ time.sleep(10)
 
 # Poll to check if there are the required number of instances in a running state again yet i.e. HA has recovered	
 while r2instances < rinstances:
+    r2instances = 0
     ec2list = ec2.instances.filter(Filters=inst_filter)
     runninginstances = ec2list.filter(Filters=[{'Name': 'instance-state-name', 'Values': ['running']}])
     for rinstance in runninginstances.all():
         r2instances +=1
+    # Add a few seconds in each loop before printing the ... (optional - just reduces the scrolling but impacts the accuracy of the elapsed time)
+    time.sleep(5)
     print('...')
 
 # Print out the elapsed time to recovery
 elapsed_time = time.time() - start_time
-print('\033[1;37;40mElapsed time: ', elapsed_time)
+print('\n' * 2)
+print('\033[1;37;40mElapsed time: ', elapsed_time, ' seconds')
+if elapsed_time < 60:
+    print("Excellent recovery! Less than a minute.")
+else:
+    print('A bit slow, over 60 seconds.')
 
 
