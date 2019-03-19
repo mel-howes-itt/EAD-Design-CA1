@@ -12,6 +12,9 @@ mydisruptedids = []
 x = 0
 
 print('\n' * 5)
+print ('Welcome to Mels TUD Chaos Monkey (tud_cm)')
+print ('----------------------------------------')
+print()
 print(r"""See no evil,    hear no evil,    speak no evil,    deliver chaos!
 
        .---.            .---.            .---.           .---.
@@ -23,9 +26,6 @@ print(r"""See no evil,    hear no evil,    speak no evil,    deliver chaos!
    \           /    \           /      /  /|\  \       /       \
 
 """)
-print()
-print ('Welcome to Mels TUD Chaos Monkey (tud_cm)')
-print ('----------------------------------------')
 print()
 
 ec2 = boto3.resource('ec2')
