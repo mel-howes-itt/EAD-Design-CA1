@@ -1,3 +1,4 @@
+# Do not store unnecessary terraform files
 terraform/.terraform/*
 terraform/terraform.tfvars
 terraform/terraform.tfstate
