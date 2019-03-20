@@ -1,17 +1,5 @@
 data "aws_availability_zones" "all" {}
 
-### Creating EC2 instance
-resource "aws_instance" "web" {
-  ami               = "${lookup(var.AMI,var.REGION)}"
-  count             = "${var.COUNT}"
-  key_name               = "${var.KEY_NAME}"
-  vpc_security_group_ids = ["${aws_security_group.instance.id}"]
-  source_dest_check = false
-  instance_type = "t2.micro"
-  tags {
-    Name = "${format("web-%03d", count.index + 1)}"
-  }
-}
 ### Creating Security Group for EC2
 resource "aws_security_group" "instance" {
   name = "terraform-example-instance"
@@ -44,8 +32,7 @@ resource "aws_autoscaling_group" "example" {
   availability_zones = ["${data.aws_availability_zones.all.names}"]
   min_size = 3
   max_size = 3
-  load_balancers = ["${aws_elb.example.name}"]
-  health_check_type = "ELB"
+  target_group_arns = ["${aws_lb_target_group.alb_target_group.arn}"]
   tag {
     key = "Name"
     value = "terraform-asg-example"
@@ -68,22 +55,43 @@ resource "aws_security_group" "elb" {
     cidr_blocks = ["0.0.0.0/0"]
   }
 }
+### Target Group
+resource "aws_lb_target_group" "alb_target_group" {  
+  name     = "alb-target-group"  
+  port     = "80"  
+  protocol = "HTTP"  
+  vpc_id   = "vpc-48ef3c2e"   
+  tags {    
+    name = "alb_target_group"    
+  }   
+  stickiness {    
+    type            = "lb_cookie"    
+    cookie_duration = 1800    
+    enabled         = true 
+  }   
+  health_check {    
+    healthy_threshold   = 3    
+    unhealthy_threshold = 10    
+    timeout             = 5    
+    interval            = 10    
+    path                = "/"    
+    port                = 80
+  }
+}
 ### Creating ELB
-resource "aws_elb" "example" {
+resource "aws_lb" "example" {
   name = "terraform-asg-example"
   security_groups = ["${aws_security_group.elb.id}"]
-  availability_zones = ["${data.aws_availability_zones.all.names}"]
-  health_check {
-    healthy_threshold = 2
-    unhealthy_threshold = 2
-    timeout = 3
-    interval = 30
-    target = "HTTP:8080/"
-  }
-  listener {
-    lb_port = 80
-    lb_protocol = "http"
-    instance_port = "8080"
-    instance_protocol = "http"
+  subnets = ["subnet-9b6f95d3", "subnet-857043de", "subnet-aa08ffcc"]
+}
+# Listener
+resource "aws_lb_listener" "alb_listener" {  
+  load_balancer_arn = "${aws_lb.example.arn}"  
+  port              = 80  
+  protocol          = "HTTP"
+  
+  default_action {    
+    target_group_arn = "${aws_lb_target_group.alb_target_group.arn}"
+    type             = "forward"  
   }
 }
