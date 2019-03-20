@@ -1,5 +1,5 @@
 terraform/.terraform/*
 terraform/terraform.tfvars
 terraform/terraform.tfstate
-terraform/terraform.tfstatebackup
+terraform/terraform.tfstate.backup
 .terraform/plugins/linux_amd64/terraform-provider-aws_v2.2.0_x4
