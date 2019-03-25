@@ -6,6 +6,7 @@ import time
 myinstances = 0
 rinstances = 0
 r2instances = 0
+rinstances2 = 0
 myinstanceids = []
 myrinstanceids = []
 mydisruptedids = []
@@ -83,11 +84,8 @@ while True:
     except ValueError:
         print("\033[1;31;40mInvalid number input. Please enter a number between 1 and ", rinstances)
 		
-# Choose random instance ids, from the list of running instances, to disrupt		
-while x < (int(disrupt)):
-    myrandom = random.choice(myrinstanceids)
-    mydisruptedids.append(myrandom)
-    x+=1
+# Randomly choose unique instance IDs to disrupt from the list of running instances
+mydisruptedids = random.sample(myrinstanceids, int(disrupt))
 
 print('\033[1;32;40mDisrupting ', disrupt, ' instances...')
 print('\033[1;37;40mDisrupted IDs: ', mydisruptedids)
@@ -101,7 +99,7 @@ for myinstancetoterminate in mydisruptedids:
     instance = ec2.Instance(myinstancetoterminate)
     instance.terminate()
 	
-print('\033[1;33;40mChecking recovery, please wait...')
+print('\033[1;33;40mChecking the time taken for the auto-scale group to recover, please wait...')
 
 # Wait 10 seconds to allow the terminate command to take effect before checking
 time.sleep(10)
@@ -116,6 +114,23 @@ while r2instances < rinstances:
     # Add a few seconds in each loop before printing the ... (optional - just reduces the scrolling but impacts the accuracy of the elapsed time)
     time.sleep(5)
     print('...')
+
+# Print out the new list of running instances
+print('\n' * 2)
+inst_filter2 = [{'Name':'tag:Name', 'Values':[myclustername]}]
+ec2listrecovered = ec2.instances.filter(Filters=inst_filter)
+
+runninginstancesrecovered = ec2listrecovered.filter(Filters=[{'Name': 'instance-state-name', 'Values': ['running']}])
+
+for rinstance2 in runninginstancesrecovered.all():
+    rinstances2 +=1
+
+print('\033[1;32;40mNumber of running instances, after recovery: ', rinstances2)
+
+for instance in runninginstancesrecovered.all():
+    for tag in instance.tags:
+        if tag['Key']=='Name':
+            print('\033[1;37;40mInstance ID: ',instance.id, 'Instance Name: ', tag['Value'], 'State: ', instance.state['Name'])
 
 # Print out the elapsed time to recovery
 elapsed_time = time.time() - start_time

@@ -2,10 +2,10 @@ data "aws_availability_zones" "all" {}
 
 ### Creating Security Group for EC2
 resource "aws_security_group" "instance" {
-  name = "terraform-example-instance"
+  name = "EAD-CA-INSTANCE-SG"
   ingress {
-    from_port = 8080
-    to_port = 8080
+    from_port = 80
+    to_port = 80
     protocol = "tcp"
     cidr_blocks = ["0.0.0.0/0"]
   }
@@ -35,18 +35,18 @@ resource "aws_autoscaling_group" "example" {
   target_group_arns = ["${aws_lb_target_group.alb_target_group.arn}"]
   tag {
     key = "Name"
-    value = "terraform-asg-example"
+    value = "EAD-CA-ASG"
     propagate_at_launch = true
   }
 }
 ## Security Group for ELB
 resource "aws_security_group" "elb" {
-  name = "terraform-example-elb"
+  name = "EAD-CA-LB-SG"
   egress {
     from_port = 0
-    to_port = 0
+    to_port = 0 
     protocol = "-1"
-    cidr_blocks = ["0.0.0.0/0"]
+    security_groups = ["${aws_security_group.instance.id}"]
   }
   ingress {
     from_port = 80
@@ -62,27 +62,14 @@ resource "aws_lb_target_group" "alb_target_group" {
   protocol = "HTTP"  
   vpc_id   = "vpc-48ef3c2e"   
   tags {    
-    name = "alb_target_group"    
+    name = "EAD-CA-TG"    
   }   
-  stickiness {    
-    type            = "lb_cookie"    
-    cookie_duration = 1800    
-    enabled         = true 
-  }   
-  health_check {    
-    healthy_threshold   = 3    
-    unhealthy_threshold = 10    
-    timeout             = 5    
-    interval            = 10    
-    path                = "/"    
-    port                = 80
-  }
 }
 ### Creating ELB
 resource "aws_lb" "example" {
-  name = "terraform-asg-example"
+  name = "EAD-CA-LB"
   security_groups = ["${aws_security_group.elb.id}"]
-  subnets = ["subnet-9b6f95d3", "subnet-857043de", "subnet-aa08ffcc"]
+  subnets = "${var.SUBNETS}"
 }
 # Listener
 resource "aws_lb_listener" "alb_listener" {  

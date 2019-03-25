@@ -23,4 +23,8 @@ variable "AMI" {
   }
 }
 
+variable "SUBNETS" {
+  type = "list"
+  default = ["subnet-9b6f95d3", "subnet-857043de", "subnet-aa08ffcc"]
+}
 
