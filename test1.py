@@ -37,6 +37,9 @@ for asg in response['AutoScalingGroups']:
     print('ASG Max Size: ', asg['MaxSize'], 'ASG Min Size: ', asg['MinSize'])
 
 # Check there are running instances found
+for instance in all_instances['AutoScalingInstances']:
+    myinstances+=1
+
 if myinstances <1:
     print('No running instances found. Chaos Monkey will now exit.')
     exit()
@@ -51,8 +54,7 @@ print()
 # Print out the ID, name and state of the instances
 for instance in all_instances['AutoScalingInstances']:
     print('Instance ID: ', instance['InstanceId'], 'Status: ', instance['LifecycleState'], 'Health Status: ', instance['HealthStatus'])
-	myinstances +=1
-	myinstanceids.append(instance['InstanceId'])
+    myinstanceids.append(instance['InstanceId'])
 
 # Show the tags so the user can see the instance names as per the ASG
 for tag in all_tags['Tags']:
