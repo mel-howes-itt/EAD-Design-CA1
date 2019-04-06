@@ -5,8 +5,8 @@ resource "aws_security_group" "instance" {
   name = "EAD-CA-INSTANCE-SG"
   ingress {
     from_port = 80
-    to_port = 80
-    protocol = "tcp"
+    to_port   = 80
+    protocol  = "tcp"
     cidr_blocks = ["0.0.0.0/0"]
   }
   ingress {
@@ -18,6 +18,7 @@ resource "aws_security_group" "instance" {
 }
 ## Creating Launch Configuration
 resource "aws_launch_configuration" "example" {
+  name                   = "EAD-CA-LC"
   image_id               = "${lookup(var.AMI,var.REGION)}"
   instance_type          = "t2.micro"
   security_groups        = ["${aws_security_group.instance.id}"]
@@ -60,7 +61,7 @@ resource "aws_security_group" "elb" {
 }
 ### Target Group
 resource "aws_lb_target_group" "alb_target_group" {  
-  name     = "alb-target-group"  
+  name     = "EAD-CA-TG"  
   port     = "80"  
   protocol = "HTTP"  
   vpc_id   = "vpc-48ef3c2e"   
