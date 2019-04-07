@@ -32,8 +32,8 @@ resource "aws_autoscaling_group" "example" {
   name = "EAD-CA-ASG"
   launch_configuration = "${aws_launch_configuration.example.id}"
   availability_zones = ["${data.aws_availability_zones.all.names}"]
-  min_size = 3
-  max_size = 3
+  min_size = "${var.COUNT}"
+  max_size = "${var.COUNT}"
   default_cooldown = 60
   health_check_grace_period = 60
   target_group_arns = ["${aws_lb_target_group.alb_target_group.arn}"]

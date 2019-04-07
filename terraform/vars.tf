@@ -14,7 +14,7 @@ variable "KEY_NAME" {
 }
 
 variable "COUNT" {
- default = 1
+ default = 6
 }
 
 variable "AMI" {
