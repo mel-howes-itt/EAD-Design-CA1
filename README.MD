@@ -21,3 +21,7 @@ The script will look for user input when it runs:
 - Number of instances you would like to disrupt
 
 It will poll instance statuses until the desired number are in a running state again. 
+
+AzureCLI
+--------
+This file contains some Azure CLI commands to create a similar architecture to that created by the terraform scripts for AWS. The mySettings.json file is used to run a command on the instances created. 
