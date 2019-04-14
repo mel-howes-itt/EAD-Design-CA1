@@ -1,3 +1,5 @@
+### Thanks to: https://medium.com/@ratulbasak93/aws-elb-and-autoscaling-using-terraform-9999e6266734
+
 data "aws_availability_zones" "all" {}
 
 ### Creating Security Group for EC2
