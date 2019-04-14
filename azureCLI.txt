@@ -1,0 +1,35 @@
+# Source: https://docs.microsoft.com/en-us/azure/virtual-machine-scale-sets/tutorial-install-apps-cli
+
+cd c:\Users\melan\Downloads
+
+# Login
+az login
+
+# Create RG
+az group create --name myResourceGroup --location eastus
+
+# Create VMSS with 3 instances across 3 availability zones
+az vmss create --resource-group myResourceGroup --name myScaleSet --image UbuntuLTS --upgrade-policy-mode automatic --admin-username azureuser --generate-ssh-keys --instance-count 3
+
+# This one puts the VMs in different Zones but then my lb rule creation fails. 
+#az vmss create --resource-group myResourceGroup --name myScaleSet --image UbuntuLTS --upgrade-policy-mode automatic --admin-username azureuser --generate-ssh-keys --instance-count 3  --zones 1 2 3
+
+# Desired state - add nginx
+az vmss extension set --publisher Microsoft.Azure.Extensions --version 2.0 --name CustomScript --resource-group myResourceGroup --vmss-name myScaleSet --settings @mySettings.json
+
+# Create LB
+az network lb rule create --resource-group myResourceGroup --name myLoadBalancerRuleWeb --lb-name myScaleSetLB --backend-pool-name myScaleSetLBBEPool --backend-port 80 --frontend-ip-name loadBalancerFrontEnd --frontend-port 80 --protocol tcp
+
+# Show the IP to surf
+az network public-ip show --resource-group myResourceGroup --name myScaleSetLBPublicIP --query [ipAddress] --output tsv
+
+# Lists instances in scaleset
+az vmss list-instances --name myScaleSet --resource-group myResourceGroup
+
+# Delete a VM from the list
+az vmss delete-instances --name myScaleSet --resource-group myResourceGroup --instance-ids 11
+
+# List info
+#az vmss list-instance-connection-info --resource-group myResourceGroup --name myScaleSet
+az vmss show --resource-group myResourceGroup --name myScaleSet
+az vmss get-instance-view --name myScaleSet --resource-group myResourceGroup
