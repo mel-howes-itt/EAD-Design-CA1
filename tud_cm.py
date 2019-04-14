@@ -1,22 +1,48 @@
 import boto3
 import random
 import time
-
-from use_lambda_function import ActivateLambdaNotification
+import json
 
 # Initialize variables
 myinstances = 0
-rinstances = 0
-r2instances = 0
-rinstances2 = 0
 myinstanceids = []
+myrinstances = 0
 myrinstanceids = []
 mydisruptedids = []
-recoveredinstanceids = []
 myASGChoices = []
 numASGs = 0
-all_my_instances = []
-x = 0
+
+# Function to get number and IDs of running instances in named ASG
+def check_instances_running():
+    my_asg_response = asg_client.describe_auto_scaling_groups(AutoScalingGroupNames=[which_asg])
+    global myrinstances
+    for j in my_asg_response['AutoScalingGroups']:
+        for l in j['Instances']:
+            myrinstances +=1
+            myrinstanceids.append(l['InstanceId'])
+    return myrinstances, myrinstanceids
+
+def SendNotificationByLambda(outputMessage):
+    # Get the lambda ARN dynamically
+    lambda_client = boto3.client('lambda')
+
+    try:
+        lambda_response = lambda_client.get_function(FunctionName='Test-Function1')
+        myFunctionARN = lambda_response['Configuration']['FunctionArn']
+    except:
+        print('Function not found by ActivateLambdaNotification.')
+        return
+
+    payload = {}
+    payload['message'] = outputMessage
+    response = lambda_client.invoke(
+        FunctionName=myFunctionARN,
+        InvocationType='RequestResponse',
+        LogType='Tail',
+        Payload=json.dumps(payload)
+    )
+    print('Sending notification to lambda.')
+
 
 # Welcome user to chaos monkey
 print('\n' * 5)
@@ -46,7 +72,6 @@ for asg in asg_response['AutoScalingGroups']:
     print('List of autoscaling groups available:')
     print('Autoscaling Group Name: ', asg['AutoScalingGroupName'])
     print('ASG Max Size: ', asg['MaxSize'], 'ASG Min Size: ', asg['MinSize'])
-    max_size = asg['MaxSize']
     myASGChoices.append(asg['AutoScalingGroupName'])
     numASGs+=1
 
@@ -64,11 +89,11 @@ print('\033[1;37;40mYou chose this ASG: ', which_asg)
 
 # Get instances in that chosen ASG
 my_asg_response = asg_client.describe_auto_scaling_groups(AutoScalingGroupNames=[which_asg])
+desired_capacity = my_asg_response['AutoScalingGroups'][0]['DesiredCapacity']
 
-for i in my_asg_response['AutoScalingGroups']:
-    for k in i['Instances']:
-        myinstances +=1
-        myinstanceids.append(k['InstanceId'])
+all_my_instances = check_instances_running()
+myinstances = all_my_instances[0]
+myinstanceids = all_my_instances[1]
 
 # Check there are instances found
 if myinstances <1:
@@ -80,7 +105,6 @@ ec2 = boto3.resource('ec2')
 ec2list = ec2.instances.filter(InstanceIds=myinstanceids)
 
 print('\033[1;32;40mTotal number of instances: ', myinstances)
-print('\033[1;32;40mNumber of running instances: ', rinstances)
 print()
 
 print ('\033[1;37;40mInstance List:')
@@ -92,7 +116,6 @@ for instance in ec2list.all():
     for tag in instance.tags:
         if tag['Key']=='Name':
             print('\033[1;37;40mInstance ID: ',instance.id, 'Instance Name: ', tag['Value'], 'State: ', instance.state['Name'])
-
 print()
 
 # Input with validation, permissable values between 1 and number of running instances
@@ -124,21 +147,17 @@ print('\033[1;33;40mChecking the time taken for the auto-scale group to recover,
 # Wait 120 seconds to allow the terminate command to take effect before checking
 time.sleep(120)
 
-# Poll ec2 instances in ASG to check if there are less than the max size number of instances
-recovered_instances = 0
-while recovered_instances < int(max_size):
-    recovered_instances = 0
-    recovered_asg_response = asg_client.describe_auto_scaling_groups(AutoScalingGroupNames=[which_asg])
-    for m in recovered_asg_response['AutoScalingGroups']:
-        for p in m['Instances']:
-            recoveredinstanceids.append(k['InstanceId'])
-    recoveredec2list = ec2.instances.filter(InstanceIds=recoveredinstanceids)
-    runninginstances = ec2list.filter(Filters=[{'Name': 'instance-state-name', 'Values': ['running']}])
-    for recinstance in runninginstances.all():
-        recovered_instances +=1
+running_now = 0
 
+while running_now < desired_capacity:
+    all_running = check_instances_running()
+    running_now = all_running[0]
+    if running_now == desired_capacity:
+        break
+	
 # Print out the elapsed time to recovery
 elapsed_time = time.time() - start_time
+
 print('\n' * 2)
 print('\033[1;37;40mElapsed time: ', elapsed_time, ' seconds')
 if elapsed_time < 60:
@@ -149,4 +168,5 @@ else:
     print('A bit slow, over 60 seconds.')
 
 # Send this result via lambda over SNS to email - doesn't work because on Rosetta Hub I can't create Roles or apply policies
-ActivateLambdaNotification(message)
+SendNotificationByLambda(message)
+
